@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS DZ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- شاشة تسجيل الدخول -->
+<div id="loginScreen" class="loginBox">
+  <h3>تسجيل الدخول</h3>
+  <select id="userSelect"></select>
+  <input id="pin" type="password" placeholder="رمز PIN">
+  <button onclick="login()">دخول</button>
+</div>
+
+<!-- التطبيق الرئيسي -->
+<div id="mainApp" style="display:none;">
+
+  <!-- رأس التطبيق -->
+  <header>
+    <div class="header-right">
+      <div style="display:flex;align-items:center;gap:10px">
+        <img id="headerLogo" src="" alt="" style="height:40px;border-radius:6px;display:none">
+        <div>
+          <h2 id="shopName">POS DZ</h2>
+          <p id="currentDate"></p>
+          <p id="currentTime"></p>
+        </div>
+      </div>
+    </div>
+    <div class="header-left">
+      <button id="menuBtn">☰</button>
+      <ul id="sideMenu" class="hidden">
+        <li onclick="show('sale')">🛒 واجهة البيع</li>
+        <li onclick="show('stock')">📦 المخزون</li>
+        <li onclick="show('customers')">👥 الزبائن</li>
+        <li onclick="show('alerts')">👤 إدارة المستخدمين</li>
+        <li onclick="show('reports')">📊 إدارة الأعمال</li>
+        <li onclick="show('settings')">⚙️ الإعدادات</li>
+        <li><button id="logoutBtn" onclick="logout()">خروج</button></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- واجهة البيع -->
+  <section id="sale" class="page active">
+    <h3>واجهة البيع</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="search" placeholder="اسم أو باركود" style="flex:1">
+      <button onclick="addItem()">➕ إضافة</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>سلعة</th>
+          <th>كمية</th>
+          <th>سعر</th>
+          <th>مجموع</th>
+          <th>خيارات</th>
+        </tr>
+      </thead>
+      <tbody id="cart"></tbody>
+    </table>
+    <h3 id="total" style="text-align:center;margin:12px 0">0</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <input id="paid" placeholder="المبلغ المدفوع" type="number" style="flex:1">
+      <select id="custSelect" style="flex:1"></select>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="pay()" style="flex:1;background:#10b981">✅ تسديد</button>
+      <button onclick="partial()" style="flex:1;background:#f59e0b">💰 جزئي</button>
+      <button onclick="toDebt()" style="flex:1;background:#ef4444">📋 دين</button>
+    </div>
+  </section>
+
+  <!-- المخزون -->
+  <section id="stock" class="page">
+    <button class="backBtn" onclick="goBack()">⬅ الرجوع</button>
+    <h3>المخزون</h3>
+    <div class="form-grid">
+      <input id="type" placeholder="نوع السلعة">
+      <input id="brand" placeholder="الماركة">
+      <input id="size" placeholder="الحجم">
+      <input id="barcode" placeholder="باركود">
+      <input id="price" placeholder="سعر البيع" type="number">
+      <input id="costPrice" placeholder="سعر الشراء" type="number">
+      <input id="qty" placeholder="كمية" type="number">
+      <input id="exp" type="date" placeholder="تاريخ الصلاحية">
+    </div>
+    <button onclick="saveItem()">💾 حفظ السلعة</button>
+    <hr style="margin:16px 0">
+    <input id="stockSearch" placeholder="🔍 بحث في المخزون..." oninput="renderStock()" style="margin-bottom:8px">
+    <ul id="stockList"></ul>
+  </section>
+
+  <!-- الزبائن -->
+  <section id="customers" class="page">
+    <button class="backBtn" onclick="goBack()">⬅ الرجوع</button>
+    <h3>الزبائن</h3>
+    <div style="display:flex;gap:8px">
+      <input id="cname" placeholder="اسم الزبون" style="flex:1">
+      <button onclick="addCustomer()">➕ إضافة</button>
+    </div>
+    <ul id="clist" style="margin-top:12px"></ul>
+  </section>
+
+  <!-- إدارة المستخدمين -->
+  <section id="alerts" class="page">
+    <button class="backBtn" onclick="goBack()">⬅ الرجوع</button>
+    <h3>إدارة المستخدمين</h3>
+    <form id="addUserInAlerts" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <input type="text" id="alertUserName" placeholder="اسم المستخدم" required style="flex:1">
+      <input type="password" id="alertUserPin" placeholder="PIN (4 أرقام)" maxlength="4" required style="flex:1">
+      <select id="alertUserRole" style="flex:1">
+        <option value="baker">بائع</option>
+        <option value="manager">مدير</option>
+      </select>
+      <button type="submit">➕ إضافة</button>
+    </form>
+    <ul id="alertList"></ul>
+  </section>
+
+  <!-- ==============================
+       إدارة الأعمال (محدّثة)
+  ================================ -->
+  <section id="reports" class="page">
+    <button class="backBtn" onclick="goBack()">⬅ الرجوع</button>
+    <h3>📊 إدارة الأعمال</h3>
+
+    <!-- تبويبات الفترات -->
+    <div class="report-tabs">
+      <button class="rtab active" onclick="switchReportTab('daily',this)">اليوم</button>
+      <button class="rtab" onclick="switchReportTab('weekly',this)">الأسبوع</button>
+      <button class="rtab" onclick="switchReportTab('monthly',this)">الشهر</button>
+      <button class="rtab" onclick="switchReportTab('yearly',this)">السنة</button>
+      <button class="rtab" onclick="switchReportTab('all',this)">الكل</button>
+    </div>
+
+    <!-- بطاقات الملخص -->
+    <div class="report-cards">
+      <div class="rcard green">
+        <span class="rcard-label">عمليات البيع</span>
+        <span class="rcard-val" id="rSales">0</span>
+      </div>
+      <div class="rcard blue">
+        <span class="rcard-label">المداخيل</span>
+        <span class="rcard-val" id="rRevenue">0</span>
+      </div>
+      <div class="rcard orange">
+        <span class="rcard-label">تكلفة الشراء</span>
+        <span class="rcard-val" id="rCost">0</span>
+      </div>
+      <div class="rcard purple">
+        <span class="rcard-label">صافي الربح</span>
+        <span class="rcard-val" id="rProfit">0</span>
+      </div>
+    </div>
+
+    <!-- قسم الديون -->
+    <div class="debt-section">
+      <h4>📋 تتبع الديون</h4>
+      <div class="report-cards" style="margin-bottom:12px">
+        <div class="rcard red">
+          <span class="rcard-label">إجمالي الديون</span>
+          <span class="rcard-val" id="rTotalDebt">0</span>
+        </div>
+        <div class="rcard orange">
+          <span class="rcard-label">عدد المدينين</span>
+          <span class="rcard-val" id="rDebtCount">0</span>
+        </div>
+      </div>
+      <ul id="debtList"></ul>
+    </div>
+
+    <!-- سجل العمليات -->
+    <div style="margin-top:16px">
+      <h4>📜 سجل العمليات</h4>
+      <ul id="salesLog"></ul>
+    </div>
+  </section>
+
+  <!-- ==============================
+       الإعدادات (محدّثة - 3 أقسام)
+  ================================ -->
+  <section id="settings" class="page">
+    <button class="backBtn" onclick="goBack()">⬅ الرجوع</button>
+    <h3>⚙️ الإعدادات</h3>
+
+    <!-- تبويبات الأقسام -->
+    <div class="settings-tabs">
+      <button class="stab active" onclick="switchSettingsTab('app',this)">🖥️ البرنامج</button>
+      <button class="stab" onclick="switchSettingsTab('store',this)">🏪 المتجر</button>
+      <button class="stab" onclick="switchSettingsTab('print',this)">🖨️ الطباعة</button>
+    </div>
+
+    <!-- القسم الأول: إعدادات البرنامج -->
+    <div id="settingsApp" class="settings-panel active">
+      <h4>🖥️ إعدادات البرنامج</h4>
+
+      <label class="set-label">صيغة التاريخ</label>
+      <select id="sDateFormat">
+        <option value="DD-MM-YYYY">يوم - شهر - سنة</option>
+        <option value="MM-DD-YYYY">شهر - يوم - سنة</option>
+        <option value="YYYY-MM-DD">سنة - شهر - يوم</option>
+      </select>
+
+      <label class="set-label">صيغة الوقت</label>
+      <select id="sTimeFormat">
+        <option value="24">24 ساعة</option>
+        <option value="12">12 ساعة (AM/PM)</option>
+      </select>
+
+      <label class="set-label">رمز العملة</label>
+      <input id="sCurrency" placeholder="مثال: دج، DA، MAD، €" maxlength="6">
+
+      <label class="set-label">لغة البرنامج</label>
+      <select id="sLang">
+        <option value="ar">العربية</option>
+        <option value="fr">Français</option>
+        <option value="en">English</option>
+      </select>
+
+      <button onclick="saveSettingsApp()" style="margin-top:12px">💾 حفظ إعدادات البرنامج</button>
+    </div>
+
+    <!-- القسم الثاني: بيانات المتجر -->
+    <div id="settingsStore" class="settings-panel">
+      <h4>🏪 بيانات المتجر</h4>
+
+      <label class="set-label">شعار المتجر</label>
+      <div class="logo-upload-box">
+        <img id="logoPreview" src="" alt="" style="display:none;max-height:80px;border-radius:8px;margin-bottom:8px">
+        <input type="file" id="logoInput" accept="image/*" onchange="previewLogo(this)" style="display:none">
+        <button onclick="document.getElementById('logoInput').click()" style="background:#6366f1">📷 تحميل الشعار</button>
+        <button onclick="removeLogo()" style="background:#ef4444;margin-right:8px">🗑️ حذف</button>
+      </div>
+
+      <label class="set-label">اسم المتجر</label>
+      <input id="sname" placeholder="اسم المحل">
+
+      <label class="set-label">رقم الهاتف</label>
+      <input id="sphone" placeholder="الهاتف" type="tel">
+
+      <label class="set-label">العنوان</label>
+      <input id="saddr" placeholder="العنوان">
+
+      <label class="set-label">رسالة ترحيب للفاتورة</label>
+      <textarea id="sWelcome" placeholder="مثال: شكراً لزيارتكم، نتمنى لكم يوماً سعيداً!" rows="3" style="width:100%;padding:10px;border-radius:6px;border:1px solid #d1d5db;resize:vertical"></textarea>
+
+      <button onclick="saveSettingsStore()" style="margin-top:12px">💾 حفظ بيانات المتجر</button>
+    </div>
+
+    <!-- القسم الثالث: الطباعة -->
+    <div id="settingsPrint" class="settings-panel">
+      <h4>🖨️ إعدادات الطباعة</h4>
+
+      <label class="set-label">رقم الفاتورة الحالي (قابل للتعديل)</label>
+      <input id="sInvoiceNum" type="number" placeholder="1" min="1">
+
+      <label class="set-label">اختيار الطابعة</label>
+      <select id="sPrinter">
+        <option value="default">الطابعة الافتراضية</option>
+        <option value="thermal">طابعة حرارية (Thermal)</option>
+        <option value="inkjet">طابعة عادية (Inkjet/Laser)</option>
+      </select>
+
+      <label class="set-label">مقاس الورق</label>
+      <select id="sPaperSize">
+        <option value="58mm">58 مم (حرارية صغيرة)</option>
+        <option value="80mm">80 مم (حرارية كبيرة)</option>
+        <option value="A4">A4</option>
+        <option value="A5">A5</option>
+      </select>
+
+      <label class="set-label">عدد النسخ</label>
+      <input id="sCopies" type="number" min="1" max="10" placeholder="1">
+
+      <div class="check-group">
+        <label class="check-label">
+          <input type="checkbox" id="sPrintLogo"> طباعة شعار المتجر
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="sPrintShopName" checked> طباعة اسم المتجر
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="sPrintPhone" checked> طباعة رقم الهاتف
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="sPrintWelcome" checked> طباعة رسالة الترحيب
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="sPrintBarcode"> طباعة باركود المنتجات
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="sPrintCustBarcode"> طباعة باركود على ورقة الزبون
+        </label>
+      </div>
+
+      <button onclick="saveSettingsPrint()" style="margin-top:12px">💾 حفظ إعدادات الطباعة</button>
+    </div>
+  </section>
+
+  <!-- مودال إدارة المستخدمين -->
+  <div id="usersModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeUsersModal()">&times;</span>
+      <h2>إدارة المستخدمين</h2>
+      <form id="addUserForm">
+        <input type="text" id="newUserName" placeholder="اسم المستخدم" required>
+        <input type="password" id="newUserPin" placeholder="PIN (4 أرقام)" maxlength="4" required>
+        <select id="newUserRole">
+          <option value="baker">بائع</option>
+          <option value="manager">مدير</option>
+        </select>
+        <button type="submit">➕ إضافة مستخدم</button>
+      </form>
+      <table id="usersTable">
+        <thead>
+          <tr><th>الاسم</th><th>PIN</th><th>الدور</th><th>خيارات</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
